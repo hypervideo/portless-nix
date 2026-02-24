@@ -3,6 +3,7 @@
   buildNpmPackage,
   fetchurl,
   runCommand,
+  jq,
   openssl,
   nodejs_20,
 }:
@@ -10,7 +11,7 @@
 let
   version = "0.4.1";
 
-  srcWithLock = runCommand "portless-src-with-lock" { } ''
+  srcWithLock = runCommand "portless-src-with-lock" { nativeBuildInputs = [ jq ]; } ''
     mkdir -p $out
     tar -xzf ${
       fetchurl {
@@ -18,6 +19,9 @@ let
         hash = "sha256-0Xjf7fgBoBu1OFcl+GakLHCX+QpwJfQgpe/FGRKa9OY=";
       }
     } -C $out --strip-components=1
+    # Strip devDependencies so npm ci doesn't try to resolve them
+    jq 'del(.devDependencies)' $out/package.json > $out/package.json.tmp
+    mv $out/package.json.tmp $out/package.json
     cp ${./package-lock.json} $out/package-lock.json
   '';
 in
