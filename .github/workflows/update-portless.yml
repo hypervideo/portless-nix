@@ -2,7 +2,7 @@ name: Update portless
 
 on:
   schedule:
-    - cron: "0 6 * * 1" # Weekly on Monday at 6 AM UTC
+    - cron: "0 6 * * *" # Runs at 06:00 everyday
   workflow_dispatch: {}
 
 permissions:
