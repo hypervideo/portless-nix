@@ -9,14 +9,14 @@
 }:
 
 let
-  version = "0.6.0";
+  version = "0.7.0";
 
   srcWithLock = runCommand "portless-src-with-lock" { nativeBuildInputs = [ jq ]; } ''
     mkdir -p $out
     tar -xzf ${
       fetchurl {
         url = "https://registry.npmjs.org/portless/-/portless-${version}.tgz";
-        hash = "sha256-nhtyMzAgB1xeVJCel9BQ1t+hhco/ggmZn4Kc5p212y0=";
+        hash = "sha256-rO4k/FZOrGcO3c1XZ9TxnDx04N5Dh4/KnCnNkNaSLPA=";
       }
     } -C $out --strip-components=1
     # Strip devDependencies so npm ci doesn't try to resolve them
@@ -32,7 +32,7 @@ buildNpmPackage {
 
   src = srcWithLock;
 
-  npmDepsHash = "sha256-myrU7rrdySqPBWlRJ6zkpGJHevOC1OaJwj9e3k2SzPw=";
+  npmDepsHash = "sha256-Dr7SEpXXTIZO7XpQtSYip6dwZ6po6JAqc/PmPm6Nxos=";
 
   dontNpmBuild = true;
   nodejs = nodejs_20;
