@@ -22,7 +22,7 @@ jobs:
       - name: Check for updates
         id: update
         run: |
-          nix shell nixpkgs#curl nixpkgs#jq nixpkgs#nodejs_20 nixpkgs#prefetch-npm-deps \
+          nix shell nixpkgs#curl nixpkgs#jq \
             -c bash scripts/update-portless.sh
 
       - name: Build updated package
@@ -37,6 +37,6 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
-          git add default.nix package-lock.json
+          git add default.nix
           git commit -m "chore: update portless to ${VERSION}"
           git push origin main

@@ -1,46 +1,53 @@
 {
   lib,
-  buildNpmPackage,
+  stdenvNoCC,
   fetchurl,
-  runCommand,
   jq,
+  makeWrapper,
   openssl,
   nodejs_20,
 }:
 
 let
-  version = "0.7.2";
-
-  srcWithLock = runCommand "portless-src-with-lock" { nativeBuildInputs = [ jq ]; } ''
-    mkdir -p $out
-    tar -xzf ${
-      fetchurl {
-        url = "https://registry.npmjs.org/portless/-/portless-${version}.tgz";
-        hash = "sha256-zfPyhJT/WlFkZ+198p2j7Xl2Znxpj3VRR+6zZX0/dK4=";
-      }
-    } -C $out --strip-components=1
-    # Strip devDependencies so npm ci doesn't try to resolve them
-    jq 'del(.devDependencies)' $out/package.json > $out/package.json.tmp
-    mv $out/package.json.tmp $out/package.json
-    cp ${./package-lock.json} $out/package-lock.json
-  '';
+  pname = "portless";
+  version = "0.10.3";
+  src = fetchurl {
+    url = "https://registry.npmjs.org/portless/-/portless-${version}.tgz";
+    hash = "sha256-jFv2+9qkh4zq0Z6lkfVUfav3Iwl8x0St62bsKzB12yg=";
+  };
 in
 
-buildNpmPackage {
-  pname = "portless";
-  inherit version;
+stdenvNoCC.mkDerivation {
+  inherit pname version src;
 
-  src = srcWithLock;
+  nativeBuildInputs = [
+    jq
+    makeWrapper
+  ];
+  dontUnpack = true;
 
-  npmDepsHash = "sha256-ngDK/6yJmQ5uzqDk//Pa7DqAOQIarTUcYU7OI8Hkc9M=";
+  installPhase = ''
+    runHook preInstall
 
-  dontNpmBuild = true;
-  nodejs = nodejs_20;
+    packageOut="$out/lib/node_modules/${pname}"
+    mkdir -p "$packageOut"
+    tar -xzf "$src" -C "$packageOut" --strip-components=1
 
-  postInstall = ''
-    wrapProgram $out/bin/portless \
+    binPath="$(jq -r '.bin.portless' "$packageOut/package.json")"
+    if [ "$binPath" = "null" ]; then
+      echo "portless tarball is missing a CLI entrypoint"
+      exit 1
+    fi
+
+    mkdir -p "$out/bin"
+    makeWrapper ${nodejs_20}/bin/node "$out/bin/portless" \
+      --add-flags "$packageOut/''${binPath#./}" \
       --prefix PATH : ${lib.makeBinPath [ openssl ]}
+
+    runHook postInstall
   '';
+
+  passthru.nodejs = nodejs_20;
 
   meta = with lib; {
     description = "Replace port numbers with stable, named .localhost URLs";

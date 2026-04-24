@@ -26,25 +26,21 @@ curl -sfL "$TARBALL_URL" -o "$WORK_DIR/portless.tgz"
 SRC_HASH=$(nix hash path --mode flat "$WORK_DIR/portless.tgz")
 echo "Source hash: $SRC_HASH"
 
-# Extract, strip devDependencies, generate production-only package-lock.json
+# Newer upstream releases ship a bundled CLI tarball with no runtime npm dependencies.
 mkdir -p "$WORK_DIR/package"
 tar -xzf "$WORK_DIR/portless.tgz" -C "$WORK_DIR/package" --strip-components=1
-jq 'del(.devDependencies)' "$WORK_DIR/package/package.json" > "$WORK_DIR/package/package.json.tmp"
-mv "$WORK_DIR/package/package.json.tmp" "$WORK_DIR/package/package.json"
 
-(cd "$WORK_DIR/package" && npm install --package-lock-only --ignore-scripts 2>/dev/null)
-
-NPM_DEPS_HASH=$(prefetch-npm-deps "$WORK_DIR/package/package-lock.json" 2>/dev/null)
-echo "NPM deps hash: $NPM_DEPS_HASH"
+RUNTIME_DEP_COUNT=$(jq '(.dependencies // {}) | length' "$WORK_DIR/package/package.json")
+if [ "$RUNTIME_DEP_COUNT" -ne 0 ]; then
+  echo "Refusing to auto-update: upstream package now has runtime npm dependencies again." >&2
+  exit 1
+fi
 
 # Update default.nix (use temp file for macOS/Linux portability)
 sed "s|version = \"$CURRENT_VERSION\"|version = \"$LATEST_VERSION\"|" "$REPO_DIR/default.nix" \
   | sed "s|hash = \".*\"|hash = \"$SRC_HASH\"|" \
-  | sed "s|npmDepsHash = \".*\"|npmDepsHash = \"$NPM_DEPS_HASH\"|" \
   > "$REPO_DIR/default.nix.tmp"
 mv "$REPO_DIR/default.nix.tmp" "$REPO_DIR/default.nix"
-
-cp "$WORK_DIR/package/package-lock.json" "$REPO_DIR/package-lock.json"
 
 echo "Updated portless to $LATEST_VERSION"
 
