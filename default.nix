@@ -10,10 +10,10 @@
 
 let
   pname = "portless";
-  version = "0.18.0";
+  version = "0.18.1";
   src = fetchurl {
     url = "https://registry.npmjs.org/portless/-/portless-${version}.tgz";
-    hash = "sha256-av9iFpbU8KO8LGB8bYyt9zg3Z8o0r9YnVXFE5wYsR1k=";
+    hash = "sha256-82LWgnCoR+gZO+lGwmxE7/DyZJ4zws/mCvE19xHgTKk=";
   };
 in
 
